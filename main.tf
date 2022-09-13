@@ -14,24 +14,22 @@ provider "aws" {
   profile = "sso-sandbox"
 }
 
-
+// Defining default network vpc resources for later references
 resource "aws_default_vpc" "default_vpc" {
 
 }
-
 resource "aws_default_subnet" "default_subnet_a" {
-  availability_zone = "europe-west-1a"
+  availability_zone = "eu-west-1a"
 }
-
 resource "aws_default_subnet" "default_subnet_c" {
-  availability_zone = "europe-west-1c"
+  availability_zone = "eu-west-1c"
 }
 
 resource "aws_ecs_cluster" "ecs_cluster_demo" {
   name = "njtest-ecs-cluster"
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
   }
 }
 
@@ -51,8 +49,8 @@ resource "aws_ecs_task_definition" "ecs_task_demo" {
   family                   = "ecs_task_demo"
   requires_compatibilities = var.capacity_providers
   network_mode             = "awsvpc"
-  cpu                      = 512
-  memory                   = 1000
+  cpu                      = 256
+  memory                   = 512
 
   # Use jsonencode()?
   container_definitions = <<DEFINITION
@@ -67,7 +65,7 @@ resource "aws_ecs_task_definition" "ecs_task_demo" {
                     "hostPort": 80
                 }
             ],
-            "memory": 1000
+            "memory": 512
         }
     ]
     DEFINITION
