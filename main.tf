@@ -18,76 +18,26 @@ module "networking" {
   source = "./modules/networking"
 }
 
-// Creating a new repository for my images
-resource "aws_ecr_repository" "my_first_ecr_repo" {
-  name = "njtest-ecr-repo"
-}
+# module "repo" {
+#   source = "./modules/repo"
+# }
+
 
 // Retrieving container image from sandbox ECR
-data "aws_ecr_image" "my_image" {
-  repository_name = "njtest-ecr-repo"
-  image_tag       = "latest" #?
-}
+# data "aws_ecr_image" "my_image" {
+#   repository_name = module.repo.repo_name
+#   image_tag       = "latest" #?
+# }
 
-resource "aws_ecs_cluster" "ecs_cluster_demo" {
-  name = "njtest-ecs-cluster"
-  setting {
-    name  = "containerInsights"
-    value = "disabled"
-  }
-}
-
-resource "aws_ecs_cluster_capacity_providers" "ecs_cap_demo" {
-  cluster_name = aws_ecs_cluster.ecs_cluster_demo.name
-
-  capacity_providers = var.capacity_providers
-
-  default_capacity_provider_strategy {
-    base              = 1
-    weight            = 100
-    capacity_provider = var.capacity_providers[0]
-  }
-}
-
-resource "aws_ecs_task_definition" "ecs_task_demo" {
-  family                   = "ecs_task_demo"
-  requires_compatibilities = var.capacity_providers
-  network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
-
-  # Use jsonencode()?
-  container_definitions = <<DEFINITION
-    [
-        {
-            "name": "njtest_ecs_task_demo",
-            "image": "docker.io/acantril/containerofcats",
-            "essential": true,
-            "portMappings": [
-                {
-                    "containerPort": 80,
-                    "hostPort": 80
-                }
-            ],
-            "memory": 512
-        }
-    ]
-    DEFINITION
-}
-
-resource "aws_ecs_service" "ecs_service_demo" {
-  name            = "njtest-ecs-service-demo"
-  cluster         = aws_ecs_cluster.ecs_cluster_demo.id
-  task_definition = aws_ecs_task_definition.ecs_task_demo.arn
-  desired_count   = 1
-
-  capacity_provider_strategy {
-    capacity_provider = var.capacity_providers[0]
-    weight            = 1
-  }
-
-  network_configuration {
-    subnets          = module.networking.subnets
-    assign_public_ip = true
-  }
+module "ecs" {
+  source             = "./modules/ecs"
+  capacity_providers = ["FARGATE"]
+  cluster_name       = "njtest-ecs-cluster"
+  task_name          = "njtest-ecs-task-demo"
+  subnets            = module.networking.subnets
+  cpu                = 256
+  memory             = 512
+  network_mode       = "awsvpc"
+  service_name       = "njtest-ecs-service-demo"
+  container_image    = "224175832146.dkr.ecr.eu-west-1.amazonaws.com/njtest-ecr-repo:latest"
 }
