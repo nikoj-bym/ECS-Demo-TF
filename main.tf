@@ -14,15 +14,19 @@ provider "aws" {
   profile = "sso-sandbox"
 }
 
-// Defining default network vpc resources for later references
-resource "aws_default_vpc" "default_vpc" {
+module "networking" {
+  source = "./modules/networking"
+}
 
+// Creating a new repository for my images
+resource "aws_ecr_repository" "my_first_ecr_repo" {
+  name = "njtest-ecr-repo"
 }
-resource "aws_default_subnet" "default_subnet_a" {
-  availability_zone = "eu-west-1a"
-}
-resource "aws_default_subnet" "default_subnet_c" {
-  availability_zone = "eu-west-1c"
+
+// Retrieving container image from sandbox ECR
+data "aws_ecr_image" "my_image" {
+  repository_name = "njtest-ecr-repo"
+  image_tag       = "latest" #?
 }
 
 resource "aws_ecs_cluster" "ecs_cluster_demo" {
@@ -83,7 +87,7 @@ resource "aws_ecs_service" "ecs_service_demo" {
   }
 
   network_configuration {
-    subnets          = ["${aws_default_subnet.default_subnet_a.id}", "${aws_default_subnet.default_subnet_c.id}"]
+    subnets          = module.networking.subnets
     assign_public_ip = true
   }
 }
